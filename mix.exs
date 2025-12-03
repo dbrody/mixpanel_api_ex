@@ -117,7 +117,7 @@ defmodule Mixpanel.Mixfile do
           end
         end
       ),
-      {:hackney, "~> 1.20"},
+      {:hackney, "~> 1.20", optional: true},
       {:jason, "~> 1.4"},
       {:machete, "~> 0.2", only: :test},
       {:mix_unused, "~> 0.4.1", only: :dev},
