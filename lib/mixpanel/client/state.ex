@@ -28,7 +28,7 @@ defmodule Mixpanel.Client.State do
   end
 
   @spec attach_span(t(), Mixpanel.Telemetry.t()) :: t()
-  def attach_span(state, span) do
+  def attach_span(state = %__MODULE__{}, span) do
     %__MODULE__{state | span: span}
   end
 end

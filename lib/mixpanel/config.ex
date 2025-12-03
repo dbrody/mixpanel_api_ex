@@ -83,6 +83,14 @@ defmodule Mixpanel.Config do
   end
 
   @spec validate_http_adapter!(options) :: options | no_return
+  defp validate_http_adapter!(custom_http_adapter: true, http_adapter: nil) do
+    raise(ArgumentError, "When custom_http_adapter is true http_adapter must be set")
+  end
+
+  defp validate_http_adapter!([custom_http_adapter: true, http_adapter: _adapter] = config) do
+    config
+  end
+
   defp validate_http_adapter!(config) do
     case config[:http_adapter] do
       http_adapter when http_adapter in @known_adapters ->
