@@ -17,6 +17,7 @@ defmodule Mixpanel.HTTP.Hackney do
     be bigger because hackney stops after the last chunk that surpasses
     `:max_body_length`. Defaults to `:infinity`.
   """
+  require Logger
 
   @behaviour Mixpanel.HTTP
 

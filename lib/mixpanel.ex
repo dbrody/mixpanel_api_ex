@@ -20,6 +20,10 @@ defmodule Mixpanel do
       def track(event, properties \\ %{}, opts \\ []),
         do: Client.track(unquote(__CALLER__.module), event, properties, opts)
 
+      @spec event_import(Client.event(), Client.properties(), Mixpanel.track_options()) :: :ok
+      def event_import(event, properties \\ %{}, opts \\ []),
+        do: Client.event_import(unquote(__CALLER__.module), event, properties, opts)
+
       @spec engage([{Client.distinct_id(), String.t(), map}], Mixpanel.engage_options()) :: :ok
       def engage(batch, opts \\ []),
         do: Client.engage(unquote(__CALLER__.module), batch, opts)
@@ -165,6 +169,18 @@ defmodule Mixpanel do
     function.
   """
   @callback track(Client.event(), Client.properties(), track_options) :: :ok
+
+  @doc """
+  Import an event.
+
+  ## Arguments
+
+  * `event` - A name for the event.
+  * `properties` - A collection of properties associated with this event.
+  * `opts` - See `t:track_options/0` for specific options to pass to this
+    function.
+  """
+  @callback event_import(Client.event(), Client.properties(), track_options) :: :ok
 
   @doc """
   Same as `f:engage/4`, but accepts a list of `{distinct_id, operation, value}`

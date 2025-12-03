@@ -21,6 +21,7 @@ defmodule Mixpanel.Client do
   @type distinct_id :: String.t()
 
   @track_endpoint "/track"
+  @import_endpoint "/import"
   @engage_endpoint "/engage"
   @alias_endpoint "/track#identity-create-alias"
   @epoch :calendar.datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}})
@@ -67,6 +68,26 @@ defmodule Mixpanel.Client do
       |> maybe_put(:ip, convert_ip(Keyword.get(opts, :ip)))
 
     GenServer.cast(server, {:track, event, properties})
+  end
+
+  @doc """
+  Import a event
+
+  See `Mixpanel.event_import/3`
+  """
+  @doc export: true
+  @spec event_import(module, event, properties, Mixpanel.track_options()) :: :ok
+  def event_import(server, event, properties, opts) do
+    opts = validate_options(opts, [:distinct_id, :ip, :time], :opts)
+
+    properties =
+      properties
+      |> Map.drop([:distinct_id, :ip, :time])
+      |> maybe_put(:time, to_timestamp(Keyword.get(opts, :time)))
+      |> maybe_put(:distinct_id, Keyword.get(opts, :distinct_id))
+      |> maybe_put(:ip, convert_ip(Keyword.get(opts, :ip)))
+
+    GenServer.cast(server, {:event_import, event, properties})
   end
 
   @doc """
@@ -132,6 +153,46 @@ defmodule Mixpanel.Client do
       })
 
     case HTTP.get(state.http_adapter, state.base_url <> @track_endpoint, [], params: [data: data]) do
+      {:ok, _, _, _} ->
+        Mixpanel.Telemetry.untimed_span_event(
+          state.span,
+          :send,
+          %{
+            event: event
+            # payload_size: byte_size(payload)
+          },
+          %{name: state.name}
+        )
+
+        :ok
+
+      {:error, reason} ->
+        Mixpanel.Telemetry.span_event(
+          state.span,
+          :send_error,
+          %{
+            event: event,
+            error: reason
+            # payload_size: byte_size(payload)
+          },
+          %{name: state.name}
+        )
+
+        Logger.warning(%{message: "Problem tracking event", event: event, properties: properties})
+    end
+
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_cast({:event_import, event, properties}, state) do
+    data =
+      encode_params(%{
+        event: event,
+        properties: Map.put_new(properties, :token, state.project_token)
+      })
+
+    case HTTP.post(state.http_adapter, state.base_url <> @import_endpoint, data, [], []) do
       {:ok, _, _, _} ->
         Mixpanel.Telemetry.untimed_span_event(
           state.span,
